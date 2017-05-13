@@ -17,6 +17,8 @@ def main():
     insert_database(stocks_list)
 
     driver.close()
+    driver.quit()
+
 
 def get_page_data():
 
@@ -70,5 +72,5 @@ def insert_database(data):
 
 if __name__ == '__main__':
     main()
-
+    quit()
 
