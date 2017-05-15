@@ -3,12 +3,16 @@ from sqlite3 import connect
 from selenium import webdriver
 from datetime import datetime
 
+if weekend():
+    quit()
+
 #globals
 url = "https://www.bolsadevaloresguayaquil.com/acciones/bvg.asp"
 driver = webdriver.Chrome()
 db = connect("db.db")
 
 def main():
+    
     page_text = get_page_data()
     stocks_list = format_data(page_text)
     for s in stocks_list:
@@ -18,6 +22,12 @@ def main():
 
     driver.close()
     driver.quit()
+
+
+def weekend():
+    #do not run on weekends
+    day = datetime.today().strftime("%A")
+    return day in ["Saturday", "Sunday"]
 
 
 def get_page_data():
@@ -72,5 +82,3 @@ def insert_database(data):
 
 if __name__ == '__main__':
     main()
-    quit()
-
