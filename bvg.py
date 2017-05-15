@@ -3,6 +3,12 @@ from sqlite3 import connect
 from selenium import webdriver
 from datetime import datetime
 
+def weekend():
+    #do not run on weekends
+    day = datetime.today().strftime("%A")
+    return day in ["Saturday", "Sunday"]
+
+
 if weekend():
     quit()
 
@@ -22,13 +28,6 @@ def main():
 
     driver.close()
     driver.quit()
-
-
-def weekend():
-    #do not run on weekends
-    day = datetime.today().strftime("%A")
-    return day in ["Saturday", "Sunday"]
-
 
 def get_page_data():
 
