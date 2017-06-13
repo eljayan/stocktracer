@@ -15,7 +15,8 @@ def main():
     download()
 
     #calculate returns
-    for c in ["favorita", "holcim"]:
+    for c in ["favorita", "holcim", "banco guayaquil", "banco pichincha", "cerveceria nacional",
+              "continental tire", "produbanco"]:
         setReturn(c)
 
     db.commit()
@@ -28,6 +29,7 @@ def weekend():
 
 
 def download():
+    #downloads the site info and inserts it in the database
     page_text = get_page_data()
     stocks_list = format_data(page_text)
     for s in stocks_list:
@@ -39,16 +41,15 @@ def download():
     driver.quit()
 
 def get_page_data():
-
+    #dowloads the pade
     driver.get(url)
-
     table = driver.find_element_by_tag_name("table")
-
     page_text = table.text
     return page_text
 
 
 def format_data(page_text):
+    #takes the page and returns a list of dictionaries with stock info
     today = datetime.today().strftime("%Y-%m-%d")
     stocks_list= []
 
@@ -79,13 +80,13 @@ def format_data(page_text):
     return stocks_list
 
 def insert_database(data):
-
     for d in data:
         db.execute("insert into stocks (date, company, price) values (?,?,?)", (d["date"], d["company"], d["price"]))
 
 
 
 def setReturn(companyName):
+    #calculates the expected return of a stock at current price
     cursor = db.execute(
         'select rowid, date, company, price, value  from stocks where company like "%' + companyName + '%"')
     for c in cursor:
