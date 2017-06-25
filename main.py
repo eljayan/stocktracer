@@ -1,4 +1,5 @@
 import re
+import requests
 from sqlite3 import connect
 from selenium import webdriver
 from datetime import datetime
@@ -6,8 +7,16 @@ from datetime import datetime
 class App:
     def __init__(self):
         self.url = "https://www.bolsadevaloresguayaquil.com/acciones/bvg.asp"
+        self.setProxies()
         self.testWeekend()
         self.connectToDb()
+
+    def setProxies(self):
+        proxies = {
+            "http":"http://r00715649:Huawei%3F4@proxyuk2.huawei.com:8080",
+            "https":"http://r00715649:Huawei%3F4@proxyuk2.huawei.com:8080"
+        }
+        self.proxies = proxies
 
     def testWeekend(self):
         date = datetime.today()
@@ -22,15 +31,20 @@ class App:
         driver = webdriver.Chrome()
         self.driver = driver
 
-    def download(self):
-        return #IMPLEMENT USING REQUESTS
+    def download(self, useproxy = False):
+        if useproxy:
+            self.page_text = requests.get(self.url, proxies=self.proxies).text
+        else:
+            self.page_text = requests.get(self.url).text
+        return
 
     def downloadWithDriver(self):
         # dowloads the pade
-        self.driver.get(self.url)
-        table = self.driver.find_element_by_tag_name("table")
+        driver = webdriver.Chrome()
+        driver.get(self.url)
+        table = driver.find_element_by_tag_name("table")
         self.page_text = table.text
-
+        driver.close()
 
     def format_data(self):
         # takes the page and returns a list of dictionaries with stock info
@@ -67,8 +81,6 @@ class App:
         for d in self.stocks_list:
             self.db.execute("insert into stocks (date, company, price) values (?,?,?)",
                        (d["date"], d["company"], d["price"]))
-
-
 
     def setReturn(self, companyName):
         # calculates the expected return of a stock at current price
@@ -116,7 +128,9 @@ class App:
 if __name__ == "__main__":
     app = App()
     app.downloadWithDriver()
+    # app.download()
     app.format_data()
     app.insert_database()
+    app.calculateReturs()
     app.db.commit()
     app.db.close()
