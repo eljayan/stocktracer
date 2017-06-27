@@ -1,5 +1,5 @@
-import re
 import requests
+from bs4 import BeautifulSoup
 from sqlite3 import connect
 from selenium import webdriver
 from datetime import datetime
@@ -13,15 +13,15 @@ class App:
 
     def setProxies(self):
         proxies = {
-            "http":"http://r00715649:Huawei%3F4@proxyuk2.huawei.com:8080",
-            "https":"http://r00715649:Huawei%3F4@proxyuk2.huawei.com:8080"
+            "http":"http://r00715649:Huawei%3F8@proxyuk2.huawei.com:8080",
+            "https":"http://r00715649:Huawei%3F8@proxyuk2.huawei.com:8080"
         }
         self.proxies = proxies
 
     def testWeekend(self):
         date = datetime.today()
         day = datetime.strftime(date, "%A")
-        if day in ["Sunday"]:
+        if day in ["Saturday", "Sunday"]:
             quit()
 
     def connectToDb(self):
@@ -42,45 +42,36 @@ class App:
         # dowloads the pade
         driver = webdriver.Chrome()
         driver.get(self.url)
-        table = driver.find_element_by_tag_name("table")
-        self.page_text = table.text
+        # table = driver.find_element_by_tag_name("table")
+        self.page_text = driver.page_source
         driver.close()
 
+    def formatPrice(self, price):
+        price = price.replace("$", "")
+        price = price.replace(",", "")
+        price = price.replace("*", "0")
+        price = float(price)
+        return price
+
     def format_data(self):
-        # takes the page and returns a list of dictionaries with stock info
-        today = datetime.today().strftime("%Y-%m-%d")
+        '''returns a list of tuples'''
         stocks_list = []
-
-        stock_blocks = self.page_text.split("\n")[4:-3]
-
-        # define the regexps
-        companyreg = re.compile(r'\D*')
-        stockreg = re.compile(r'\$\d+[\.\,]?\d+[\.\,]?\d*')
-
-        for s in stock_blocks:
-            find_company = companyreg.search(s)
-            find_price = stockreg.search(s)
-
-            if find_company and find_price:
-                company = find_company.group().strip()
-                price = find_price.group()[1:]
-                price = price.replace(",", "")
-            else:
-                continue
-
-            if company and price:
-                stocks_list.append({
-                    "date": today,
-                    "company": company,
-                    "price": float(price)
-                })
+        today = datetime.today().strftime("%Y-%m-%d")
+        soup = BeautifulSoup(self.page_text, 'html.parser')
+        table = soup.find_all("table")[2]
+        rows = table.find_all("tr")
+        for r in rows[1:-1]:
+            cells = r.find_all("td")
+            company = cells[0].text.strip()
+            price = self.formatPrice(cells[3].text.strip())
+            stocks_list.append((today, company, price))
 
         self.stocks_list = stocks_list
 
     def insert_database(self):
-        for d in self.stocks_list:
+        for data in self.stocks_list:
             self.db.execute("insert into stocks (date, company, price) values (?,?,?)",
-                       (d["date"], d["company"], d["price"]))
+                       (data))
 
     def setReturn(self, companyName):
         # calculates the expected return of a stock at current price
@@ -108,9 +99,10 @@ class App:
             date = c[1]
             year = int(date[:4])
             price = c[3]
+            #SELECT LAST YEARS EARNINGS (year - 1)
             earningsQuery = self.db.execute(
                 'select earnings_per_share from earnings where company like "%' + companyName + '%"' + 'and year = ?',
-                (year,))
+                (year-1,))
             earnings = earningsQuery.fetchone()
             if earnings:
                 print earnings[0], price
@@ -127,8 +119,8 @@ class App:
 
 if __name__ == "__main__":
     app = App()
-    app.downloadWithDriver()
-    # app.download()
+    # app.downloadWithDriver()
+    app.download(useproxy=True)
     app.format_data()
     app.insert_database()
     app.calculateReturs()
